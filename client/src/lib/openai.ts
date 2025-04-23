@@ -19,7 +19,13 @@ interface GenerateSummaryResponse {
 }
 
 interface ExecuteSQLResponse {
-  results: any[];
+  // For READ operations (SELECT queries)
+  results?: any[];
+  operation: 'READ' | 'WRITE';
+  
+  // For WRITE operations (INSERT, UPDATE, DELETE, CREATE, etc.)
+  affectedRows?: number;
+  message?: string;
 }
 
 // Function to generate SQL from prompt
@@ -28,13 +34,17 @@ export async function generateSQL(
   projectId: string, 
   dataset: string
 ): Promise<GenerateSQLResponse> {
-  const response = await apiRequest('POST', '/api/generate-sql', {
-    prompt,
-    projectId,
-    dataset
+  const response = await apiRequest({
+    method: 'POST', 
+    url: '/api/generate-sql', 
+    data: {
+      prompt,
+      projectId,
+      dataset
+    }
   });
   
-  return await response.json();
+  return response;
 }
 
 // Function to validate SQL
@@ -43,13 +53,17 @@ export async function validateSQL(
   projectId: string, 
   dataset: string
 ): Promise<ValidateSQLResponse> {
-  const response = await apiRequest('POST', '/api/validate-sql', {
-    sql,
-    projectId,
-    dataset
+  const response = await apiRequest({
+    method: 'POST', 
+    url: '/api/validate-sql', 
+    data: {
+      sql,
+      projectId,
+      dataset
+    }
   });
   
-  return await response.json();
+  return response;
 }
 
 // Function to generate summary
@@ -58,13 +72,17 @@ export async function generateSummary(
   projectId: string, 
   dataset: string
 ): Promise<GenerateSummaryResponse> {
-  const response = await apiRequest('POST', '/api/generate-summary', {
-    sql,
-    projectId,
-    dataset
+  const response = await apiRequest({
+    method: 'POST', 
+    url: '/api/generate-summary', 
+    data: {
+      sql,
+      projectId,
+      dataset
+    }
   });
   
-  return await response.json();
+  return response;
 }
 
 // Function to execute SQL
@@ -73,11 +91,15 @@ export async function executeSQL(
   projectId: string, 
   dataset: string
 ): Promise<ExecuteSQLResponse> {
-  const response = await apiRequest('POST', '/api/execute-sql', {
-    sql,
-    projectId,
-    dataset
+  const response = await apiRequest({
+    method: 'POST', 
+    url: '/api/execute-sql', 
+    data: {
+      sql,
+      projectId,
+      dataset
+    }
   });
   
-  return await response.json();
+  return response;
 }

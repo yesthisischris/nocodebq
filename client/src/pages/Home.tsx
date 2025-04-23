@@ -34,6 +34,8 @@ const Home = () => {
   const [validationResult, setValidationResult] = useState<any>(null);
   const [summary, setSummary] = useState<string>("");
   const [results, setResults] = useState<any[]>([]);
+  const [operationType, setOperationType] = useState<'READ' | 'WRITE'>('READ');
+  const [operationMessage, setOperationMessage] = useState<string>('');
   
   // Mutations
   const sqlMutation = useMutation({
