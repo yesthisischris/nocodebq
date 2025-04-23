@@ -1,8 +1,76 @@
-// This file would contain direct integrations with the BigQuery API
-// Since we're handling all BigQuery operations through our Express backend,
-// this file is currently a placeholder for potential future direct integrations
-// if needed.
+// This file contains client-side utilities for BigQuery operations
+// All actual BigQuery operations are handled through our Express backend
+
+import { apiRequest } from './queryClient';
+
+// Define types for responses
+interface ProjectsResponse {
+  projects: string[];
+}
+
+interface DatasetsResponse {
+  datasets: string[];
+}
+
+interface TablesResponse {
+  tables: string[];
+}
 
 export const BigQuery = {
-  // Placeholder for potential direct BigQuery client methods
+  /**
+   * Gets the list of available projects
+   * @returns Promise with list of project IDs
+   */
+  async getProjects(): Promise<string[]> {
+    try {
+      const response = await apiRequest({
+        method: 'GET',
+        url: '/api/bigquery/projects'
+      }) as ProjectsResponse;
+      
+      return response?.projects || [];
+    } catch (error) {
+      console.error('Error fetching BigQuery projects:', error);
+      return [];
+    }
+  },
+
+  /**
+   * Gets datasets available in a specific project
+   * @param projectId The Google Cloud project ID
+   * @returns Promise with list of dataset IDs
+   */
+  async getDatasets(projectId: string): Promise<string[]> {
+    try {
+      const response = await apiRequest({
+        method: 'GET',
+        url: `/api/bigquery/datasets?projectId=${encodeURIComponent(projectId)}`
+      }) as DatasetsResponse;
+      
+      return response?.datasets || [];
+    } catch (error) {
+      console.error(`Error fetching BigQuery datasets for project ${projectId}:`, error);
+      return [];
+    }
+  },
+
+  /**
+   * Gets tables available in a specific project and dataset
+   * @param projectId The Google Cloud project ID
+   * @param datasetId The BigQuery dataset ID
+   * @returns Promise with list of table IDs
+   */
+  async getTables(projectId: string, datasetId: string): Promise<string[]> {
+    try {
+      const response = await apiRequest({
+        method: 'GET',
+        url: `/api/bigquery/tables?projectId=${encodeURIComponent(projectId)}&datasetId=${encodeURIComponent(datasetId)}`
+      }) as TablesResponse;
+      
+      return response?.tables || [];
+    } catch (error) {
+      console.error(`Error fetching BigQuery tables for ${projectId}.${datasetId}:`, error);
+      return [];
+    }
+  }
 };

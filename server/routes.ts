@@ -5,62 +5,10 @@ import { promptSchema, validationSchema, executionSchema } from "@shared/schema"
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
 import OpenAI from "openai";
+import { bigQueryClient } from "./bigquery";
 
 // Initialize OpenAI
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || "" });
-
-// Placeholder for the BigQuery client - in a real app, you would use the actual Google Cloud client
-const bigQueryClient = {
-  validateQuery: async (sql: string, projectId: string, dataset: string) => {
-    try {
-      // This is a simplified validation - in a real app, you'd use the Google Cloud BigQuery client
-      if (!sql || !sql.trim()) {
-        throw new Error("Empty SQL query");
-      }
-      
-      // Basic SQL syntax check - just an example
-      const sqlLower = sql.toLowerCase();
-      if (!sqlLower.includes("select")) {
-        throw new Error("Query must contain a SELECT statement");
-      }
-      
-      // Simulated estimated processing
-      // In a real app, you'd use bigQuery.createQueryJob with dryRun: true
-      const processingGB = (sql.length / 1000 * 0.5).toFixed(2);
-      
-      return {
-        valid: true,
-        processingGB,
-        message: "Query is valid",
-      };
-    } catch (error: any) {
-      return {
-        valid: false,
-        processingGB: "0",
-        message: error.message || "Invalid query",
-      };
-    }
-  },
-  
-  executeQuery: async (sql: string, projectId: string, dataset: string) => {
-    try {
-      // Simplified execution - in a real app, you'd use the Google Cloud BigQuery client
-      // This is a placeholder that returns mock results
-      return {
-        success: true,
-        rows: [
-          { field1: "value1", field2: "value2" },
-          { field1: "value3", field2: "value4" },
-        ],
-      };
-    } catch (error: any) {
-      return {
-        success: false,
-        error: error.message || "Failed to execute query",
-      };
-    }
-  },
-};
 
 // Helper function to handle validation errors
 function handleValidationError(error: unknown, res: Response) {
@@ -239,6 +187,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error(error);
       return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // BigQuery metadata endpoints
+  app.get("/api/bigquery/projects", async (_req: Request, res: Response) => {
+    try {
+      const bigquery = bigQueryClient.getBigQueryInstance();
+      const [projects] = await bigquery.getProjects();
+      const projectIds = projects.map((project: any) => project.id);
+      
+      return res.status(200).json({
+        projects: projectIds,
+      });
+    } catch (error) {
+      console.error("Error fetching BigQuery projects:", error);
+      return res.status(500).json({ message: "Failed to fetch BigQuery projects" });
+    }
+  });
+
+  app.get("/api/bigquery/datasets", async (req: Request, res: Response) => {
+    try {
+      const { projectId } = req.query;
+      
+      if (!projectId || typeof projectId !== 'string') {
+        return res.status(400).json({ message: "Project ID is required" });
+      }
+      
+      const bigquery = bigQueryClient.getBigQueryInstance();
+      const [datasets] = await bigquery.getDatasets({ projectId });
+      const datasetIds = datasets.map((dataset: any) => dataset.id);
+      
+      return res.status(200).json({
+        datasets: datasetIds,
+      });
+    } catch (error) {
+      console.error("Error fetching BigQuery datasets:", error);
+      return res.status(500).json({ message: "Failed to fetch BigQuery datasets" });
+    }
+  });
+
+  app.get("/api/bigquery/tables", async (req: Request, res: Response) => {
+    try {
+      const { projectId, datasetId } = req.query;
+      
+      if (!projectId || typeof projectId !== 'string') {
+        return res.status(400).json({ message: "Project ID is required" });
+      }
+      
+      if (!datasetId || typeof datasetId !== 'string') {
+        return res.status(400).json({ message: "Dataset ID is required" });
+      }
+      
+      const bigquery = bigQueryClient.getBigQueryInstance();
+      const dataset = bigquery.dataset(datasetId, { projectId });
+      const [tables] = await dataset.getTables();
+      const tableIds = tables.map((table: any) => table.id);
+      
+      return res.status(200).json({
+        tables: tableIds,
+      });
+    } catch (error) {
+      console.error("Error fetching BigQuery tables:", error);
+      return res.status(500).json({ message: "Failed to fetch BigQuery tables" });
     }
   });
 
