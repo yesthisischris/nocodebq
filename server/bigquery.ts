@@ -65,7 +65,34 @@ export const bigQueryClient = {
   },
 
   /**
-   * Executes a SQL query in BigQuery
+   * Determines the type of SQL operation being performed
+   * @param sql The SQL query to analyze
+   * @returns The operation type
+   */
+  getQueryType: (sql: string): 'READ' | 'WRITE' | 'DDL' | 'UNKNOWN' => {
+    const sqlUpper = sql.toUpperCase().trimStart();
+    
+    if (sqlUpper.startsWith('SELECT') || sqlUpper.startsWith('WITH')) {
+      return 'READ';
+    } 
+    else if (sqlUpper.startsWith('INSERT') || 
+             sqlUpper.startsWith('UPDATE') || 
+             sqlUpper.startsWith('DELETE') || 
+             sqlUpper.startsWith('MERGE')) {
+      return 'WRITE';
+    }
+    else if (sqlUpper.startsWith('CREATE') || 
+             sqlUpper.startsWith('DROP') || 
+             sqlUpper.startsWith('ALTER') || 
+             sqlUpper.startsWith('TRUNCATE')) {
+      return 'DDL';
+    }
+    
+    return 'UNKNOWN';
+  },
+
+  /**
+   * Executes a SQL query in BigQuery, handling both read and write operations
    * @param sql The SQL query to execute
    * @param projectId The Google Cloud project ID
    * @param dataset The BigQuery dataset (not directly used in execution)
@@ -80,18 +107,47 @@ export const bigQueryClient = {
         projectId: projectId
       };
 
-      // Run the query and get the results
-      const [rows] = await bigquery.query(options);
+      // Get the query type to determine execution method
+      const queryType = bigQueryClient.getQueryType(sql);
 
-      return {
-        success: true,
-        rows,
-      };
+      if (queryType === 'READ') {
+        // For SELECT queries, use the query method which returns rows
+        const [rows] = await bigquery.query(options);
+        
+        return {
+          success: true,
+          rows,
+          affectedRows: 0,
+          operation: 'READ'
+        };
+      } 
+      else if (queryType === 'WRITE' || queryType === 'DDL') {
+        // For data modification, use createQueryJob and wait for completion
+        const [job] = await bigquery.createQueryJob(options);
+        await job.getQueryResults();
+        
+        // Get statistics about the job
+        const metadata = job.metadata || {};
+        const statistics = metadata.statistics || {};
+        const numDmlAffectedRows = statistics.numDmlAffectedRows || 0;
+        
+        return {
+          success: true,
+          rows: [],
+          affectedRows: Number(numDmlAffectedRows),
+          operation: queryType
+        };
+      }
+      else {
+        // Unknown operation type
+        throw new Error('Unknown query type. Please use SELECT, INSERT, UPDATE, DELETE, or CREATE/ALTER/DROP statements.');
+      }
     } catch (error: any) {
       console.error('BigQuery execution error:', error);
       return {
         success: false,
         error: error.message || 'Failed to execute query',
+        operation: 'UNKNOWN'
       };
     }
   },

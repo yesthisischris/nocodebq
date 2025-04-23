@@ -33,7 +33,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           {
             role: "system",
             content: `You are an expert SQL assistant for Google BigQuery. Generate SQL based on the user's request. 
-                     The SQL should be valid BigQuery SQL and optimized for performance. 
+                     The SQL should be valid BigQuery SQL and optimized for performance.
+                     You can generate any type of SQL statement, including:
+                     - SELECT queries for data retrieval
+                     - INSERT, UPDATE, DELETE for data modification
+                     - CREATE TABLE, CREATE VIEW, DROP, ALTER for schema management
+                     
+                     Make sure to follow Google BigQuery SQL syntax and best practices.
                      Return just the SQL code with no additional explanation.`
           },
           {
@@ -131,10 +137,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         messages: [
           {
             role: "system",
-            content: `You are an independent SQL reviewer. Analyze the SQL query provided and explain in simple terms what it does.
+            content: `You are an independent SQL reviewer. Analyze the SQL provided and explain in simple terms what it does.
                      Your explanation should be clear, concise, and understandable by non-technical users.
-                     Include what tables are being queried, what data is being retrieved, and any filters or calculations being applied.
-                     Format your response in markdown with bullet points for clarity.`
+                     
+                     For SELECT queries:
+                     - Explain what tables are being queried
+                     - Describe what data is being retrieved
+                     - Note any filters, joins, or calculations
+                     
+                     For INSERT/UPDATE/DELETE:
+                     - Explain which tables are being modified
+                     - Describe what data is being changed
+                     - Note any conditions or filters applied
+                     
+                     For CREATE/ALTER/DROP:
+                     - Explain what database objects are being created or modified
+                     - Describe the structure and purpose of these objects
+                     - Note any important constraints or settings
+                     
+                     Format your response in markdown with bullet points for clarity.
+                     Begin with a simple one-line summary of the operation.`
           },
           {
             role: "user",
@@ -168,9 +190,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      return res.status(200).json({
-        results: executionResult.rows,
-      });
+      // Different response based on operation type
+      if (executionResult.operation === 'READ') {
+        return res.status(200).json({
+          results: executionResult.rows,
+          operation: executionResult.operation
+        });
+      } else {
+        return res.status(200).json({
+          affectedRows: executionResult.affectedRows,
+          operation: executionResult.operation,
+          message: `Operation completed successfully. ${executionResult.affectedRows} rows affected.`
+        });
+      }
     } catch (error) {
       return handleValidationError(error, res);
     }
