@@ -7,6 +7,7 @@ import MainPanel from "@/components/MainPanel";
 import ValidationResults from "@/components/ValidationResults";
 import QuerySummary from "@/components/QuerySummary";
 import QueryResults from "@/components/QueryResults";
+import OperationResults from "@/components/OperationResults";
 import { useToast } from "@/hooks/use-toast";
 import { generateSQL, validateSQL, generateSummary, executeSQL } from "@/lib/openai";
 
@@ -135,12 +136,25 @@ const Home = () => {
       return await executeSQL(sql, projectId, dataset);
     },
     onSuccess: (data) => {
-      setResults(data.results);
+      setOperationType(data.operation);
+      
+      if (data.operation === 'READ') {
+        setResults(data.results || []);
+        toast({
+          title: "Query Executed",
+          description: "SELECT query executed successfully",
+        });
+      } else {
+        // For WRITE operations (INSERT, UPDATE, DELETE, CREATE, etc.)
+        setOperationMessage(data.message || `Operation completed successfully. ${data.affectedRows || 0} rows affected.`);
+        setResults([]); // Clear any previous results
+        toast({
+          title: "Operation Completed",
+          description: data.message || `${data.affectedRows || 0} rows affected`,
+        });
+      }
+      
       setActiveStep("execute");
-      toast({
-        title: "Query Executed",
-        description: "SQL query has been executed successfully",
-      });
     },
     onError: (error: any) => {
       toast({
@@ -232,8 +246,15 @@ const Home = () => {
               />
             )}
             
-            {activeStep === "execute" && results.length > 0 && (
-              <QueryResults results={results} />
+            {activeStep === "execute" && (
+              operationType === 'READ' && results.length > 0 ? (
+                <QueryResults results={results} />
+              ) : operationType === 'WRITE' && (
+                <OperationResults 
+                  message={operationMessage} 
+                  affectedRows={executeMutation.data?.affectedRows} 
+                />
+              )
             )}
           </div>
         </div>

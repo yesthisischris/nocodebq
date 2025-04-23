@@ -194,13 +194,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (executionResult.operation === 'READ') {
         return res.status(200).json({
           results: executionResult.rows,
-          operation: executionResult.operation
+          operation: 'READ'
         });
       } else {
+        // Normalize DDL operations to WRITE for frontend consistency
+        let operationMessage = '';
+        
+        if (executionResult.operation === 'DDL') {
+          operationMessage = 'Database structure modified successfully.';
+        } else {
+          operationMessage = `Operation completed successfully. ${executionResult.affectedRows} rows affected.`;
+        }
+        
         return res.status(200).json({
           affectedRows: executionResult.affectedRows,
-          operation: executionResult.operation,
-          message: `Operation completed successfully. ${executionResult.affectedRows} rows affected.`
+          operation: 'WRITE', // Both DDL and WRITE show the same UI
+          message: operationMessage
         });
       }
     } catch (error) {
