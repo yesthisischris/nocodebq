@@ -23,9 +23,11 @@ const QuerySummary = ({
       </CardHeader>
       <CardContent className="p-6">
         <div className="bg-[#f8f9fa] rounded-md p-4 mb-4">
-          <ReactMarkdown className="prose max-w-none text-[#202124]">
-            {summary}
-          </ReactMarkdown>
+          <div className="prose max-w-none text-[#202124]">
+            <ReactMarkdown>
+              {summary}
+            </ReactMarkdown>
+          </div>
         </div>
         
         <div className="flex space-x-4">
