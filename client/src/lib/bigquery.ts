@@ -23,12 +23,12 @@ export const BigQuery = {
    */
   async getProjects(): Promise<string[]> {
     try {
-      const response = await apiRequest({
+      const response = await apiRequest<ProjectsResponse>({
         method: 'GET',
         url: '/api/bigquery/projects'
-      }) as ProjectsResponse;
+      });
       
-      return response?.projects || [];
+      return response.projects || [];
     } catch (error) {
       console.error('Error fetching BigQuery projects:', error);
       return [];
@@ -42,12 +42,12 @@ export const BigQuery = {
    */
   async getDatasets(projectId: string): Promise<string[]> {
     try {
-      const response = await apiRequest({
+      const response = await apiRequest<DatasetsResponse>({
         method: 'GET',
         url: `/api/bigquery/datasets?projectId=${encodeURIComponent(projectId)}`
-      }) as DatasetsResponse;
+      });
       
-      return response?.datasets || [];
+      return response.datasets || [];
     } catch (error) {
       console.error(`Error fetching BigQuery datasets for project ${projectId}:`, error);
       return [];
@@ -62,12 +62,12 @@ export const BigQuery = {
    */
   async getTables(projectId: string, datasetId: string): Promise<string[]> {
     try {
-      const response = await apiRequest({
+      const response = await apiRequest<TablesResponse>({
         method: 'GET',
         url: `/api/bigquery/tables?projectId=${encodeURIComponent(projectId)}&datasetId=${encodeURIComponent(datasetId)}`
-      }) as TablesResponse;
+      });
       
-      return response?.tables || [];
+      return response.tables || [];
     } catch (error) {
       console.error(`Error fetching BigQuery tables for ${projectId}.${datasetId}:`, error);
       return [];

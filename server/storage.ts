@@ -44,11 +44,21 @@ export class MemStorage implements IStorage {
 
   async createQuery(insertQuery: InsertQuery): Promise<Query> {
     const id = this.queryCurrentId++;
+    
+    // Ensure all required fields are non-undefined
+    const processedQuery = {
+      ...insertQuery,
+      processingGb: insertQuery.processingGb ?? null,
+      summary: insertQuery.summary ?? null,
+      results: insertQuery.results ?? null
+    };
+    
     const query: Query = { 
-      ...insertQuery, 
+      ...processedQuery, 
       id, 
       createdAt: new Date() 
     };
+    
     this.queryStore.set(id, query);
     return query;
   }
@@ -67,7 +77,15 @@ export class MemStorage implements IStorage {
     const existingQuery = this.queryStore.get(id);
     if (!existingQuery) return undefined;
 
-    const updatedQuery = { ...existingQuery, ...partialQuery };
+    // Ensure field types match expected types
+    const processedPartial = {
+      ...partialQuery,
+      processingGb: partialQuery.processingGb ?? existingQuery.processingGb,
+      summary: partialQuery.summary ?? existingQuery.summary,
+      results: partialQuery.results ?? existingQuery.results
+    };
+
+    const updatedQuery = { ...existingQuery, ...processedPartial };
     this.queryStore.set(id, updatedQuery);
     return updatedQuery;
   }

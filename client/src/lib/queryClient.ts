@@ -1,5 +1,9 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
+/**
+ * Throws an error for non-OK responses
+ * @param res The fetch Response object
+ */
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     const text = (await res.text()) || res.statusText;
@@ -7,11 +11,18 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
-export async function apiRequest(
-  method: string,
-  url: string,
-  data?: unknown | undefined,
-): Promise<Response> {
+/**
+ * Makes an API request to the specified URL with the given method and optional data
+ * @param options Request options including method, url, and data
+ * @returns Promise with the parsed JSON response
+ */
+export async function apiRequest<T = any>(options: {
+  method: string;
+  url: string;
+  data?: unknown;
+}): Promise<T> {
+  const { method, url, data } = options;
+  
   const res = await fetch(url, {
     method,
     headers: data ? { "Content-Type": "application/json" } : {},
@@ -20,7 +31,7 @@ export async function apiRequest(
   });
 
   await throwIfResNotOk(res);
-  return res;
+  return await res.json() as T;
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
